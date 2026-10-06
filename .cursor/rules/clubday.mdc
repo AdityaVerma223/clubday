@@ -1,0 +1,47 @@
+---
+description: ClubDay product, stack, conventions, and hard rules for every change.
+alwaysApply: true
+---
+
+# ClubDay
+
+ClubDay is a campus club-day platform for student check-in, attendance, and certificates.
+Organizers run events; students scan in, get marked present, and later download certificates.
+Treat every change as production-bound: validate input, enforce policy on the server, and keep check-in fast.
+
+## Stack
+
+Next.js App Router, TypeScript, Tailwind, shadcn/ui, Motion, Drizzle, Better Auth, Supabase, Vitest, Playwright, k6.
+
+## Folder layout
+
+- `src/app` — App Router pages and route handlers
+- `src/components` — UI components
+- `src/db` — Drizzle schema, client, and migrations (all database access)
+- `src/lib` — shared helpers (including `policy.ts`)
+- `src/server` — server-only logic
+- `scripts` — one-off and seed scripts
+- `tests` — Vitest and Playwright tests
+- `load` — k6 load tests
+
+## Conventions
+
+- Server actions and route handlers validate input with Zod.
+- All database access goes through `src/db`.
+- Every mutation calls `can()` from `src/lib/policy.ts` on the server.
+- Store times in UTC; display them in `Asia/Kolkata`.
+- Read environment variables only through `src/env.ts`.
+
+## Hard rules
+
+- Never trust a user id or role sent by the client.
+- Never log tokens or secrets.
+- Never commit `.env` files.
+- The student check-in endpoint must stay one database round trip.
+- Every new feature needs a Vitest or Playwright test.
+
+## Workflow
+
+- Work in small steps.
+- Run lint, typecheck, and tests before saying a task is done.
+- Tell the user what to commit; do not commit unless asked.
