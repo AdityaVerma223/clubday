@@ -228,16 +228,13 @@ export async function listClubs() {
   const userRole = session?.user?.role;
   const userCampusId = session?.user?.campusId;
 
-  // Admin sees all clubs, others see only approved clubs
+  // Only admins can browse across campuses. Other users must have a campus.
   const whereClause =
     userRole === "admin"
       ? undefined
       : typeof userCampusId === "string"
-        ? and(
-            eq(clubs.status, "approved"),
-            eq(clubs.campusId, userCampusId),
-          )
-        : eq(clubs.status, "approved");
+        ? and(eq(clubs.status, "approved"), eq(clubs.campusId, userCampusId))
+        : eq(clubs.id, "00000000-0000-0000-0000-000000000000");
 
   const clubsList = await db.query.clubs.findMany({
     where: whereClause,
@@ -327,6 +324,9 @@ export async function requestJoin(input: z.infer<typeof requestJoinSchema>) {
   }
   if (club.status !== "approved") {
     throw new Error("Club is not approved");
+  }
+  if (!session.user.campusId || club.campusId !== session.user.campusId) {
+    throw new Error("You can only request membership at your own campus");
   }
 
   // Check if user already has a membership of this kind
