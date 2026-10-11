@@ -5,6 +5,34 @@ import { requestJoin, approveMembership } from "@/server/actions/clubs";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
+type MockSessionUser = Pick<
+  NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>["user"],
+  "id" | "name" | "email" | "role" | "campusId" | "studentId"
+>;
+
+const createMockSession = (user: MockSessionUser) => {
+  const now = new Date();
+  return {
+    session: {
+      id: "test-session",
+      userId: user.id,
+      token: "test-session-token",
+      expiresAt: new Date(now.getTime() + 60_000),
+      createdAt: now,
+      updatedAt: now,
+      ipAddress: null,
+      userAgent: null,
+    },
+    user: {
+      ...user,
+      emailVerified: false,
+      image: null,
+      createdAt: now,
+      updatedAt: now,
+    },
+  } satisfies NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
+};
+
 describe("Club Membership Rules", () => {
   let testCampusId: string;
   let testClubId: string;
@@ -142,16 +170,14 @@ describe("Club Membership Rules", () => {
   describe("Primary and Secondary Club Limit", () => {
     it("should allow requesting a primary club when user has none", async () => {
       // Mock the session to return the test student
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testUserId,
-          name: "Test Student",
-          email: "test@student.com",
-          role: "student",
-          campusId: testCampusId,
-          studentId: "TEST001",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testUserId,
+        name: "Test Student",
+        email: "test@student.com",
+        role: "student",
+        campusId: testCampusId,
+        studentId: "TEST001",
+      }));
 
       const result = await requestJoin({
         clubId: testClubId,
@@ -179,16 +205,14 @@ describe("Club Membership Rules", () => {
       });
 
       // Mock the session
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testUserId,
-          name: "Test Student",
-          email: "test@student.com",
-          role: "student",
-          campusId: testCampusId,
-          studentId: "TEST001",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testUserId,
+        name: "Test Student",
+        email: "test@student.com",
+        role: "student",
+        campusId: testCampusId,
+        studentId: "TEST001",
+      }));
 
       // Try to request another primary club (testClub2Id)
       await expect(
@@ -201,16 +225,14 @@ describe("Club Membership Rules", () => {
 
     it("should allow requesting a secondary club when user has none", async () => {
       // Mock the session
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testUserId,
-          name: "Test Student",
-          email: "test@student.com",
-          role: "student",
-          campusId: testCampusId,
-          studentId: "TEST001",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testUserId,
+        name: "Test Student",
+        email: "test@student.com",
+        role: "student",
+        campusId: testCampusId,
+        studentId: "TEST001",
+      }));
 
       const result = await requestJoin({
         clubId: testClubId,
@@ -235,16 +257,14 @@ describe("Club Membership Rules", () => {
       });
 
       // Mock the session
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testUserId,
-          name: "Test Student",
-          email: "test@student.com",
-          role: "student",
-          campusId: testCampusId,
-          studentId: "TEST001",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testUserId,
+        name: "Test Student",
+        email: "test@student.com",
+        role: "student",
+        campusId: testCampusId,
+        studentId: "TEST001",
+      }));
 
       await expect(
         requestJoin({
@@ -264,16 +284,14 @@ describe("Club Membership Rules", () => {
       });
 
       // Mock the session
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testUserId,
-          name: "Test Student",
-          email: "test@student.com",
-          role: "student",
-          campusId: testCampusId,
-          studentId: "TEST001",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testUserId,
+        name: "Test Student",
+        email: "test@student.com",
+        role: "student",
+        campusId: testCampusId,
+        studentId: "TEST001",
+      }));
 
       // Request secondary club (testClub2Id)
       const result = await requestJoin({
@@ -298,16 +316,14 @@ describe("Club Membership Rules", () => {
       // Club capacity is 2, no members yet
 
       // Mock the session
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testUserId,
-          name: "Test Student",
-          email: "test@student.com",
-          role: "student",
-          campusId: testCampusId,
-          studentId: "TEST001",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testUserId,
+        name: "Test Student",
+        email: "test@student.com",
+        role: "student",
+        campusId: testCampusId,
+        studentId: "TEST001",
+      }));
 
       const result = await requestJoin({
         clubId: testClubId,
@@ -335,16 +351,14 @@ describe("Club Membership Rules", () => {
       ]);
 
       // Mock the session
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testUserId,
-          name: "Test Student",
-          email: "test@student.com",
-          role: "student",
-          campusId: testCampusId,
-          studentId: "TEST001",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testUserId,
+        name: "Test Student",
+        email: "test@student.com",
+        role: "student",
+        campusId: testCampusId,
+        studentId: "TEST001",
+      }));
 
       await expect(
         requestJoin({
@@ -383,16 +397,14 @@ describe("Club Membership Rules", () => {
       ]);
 
       // Mock the session as coordinator
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testCoordinatorId,
-          name: "Test Coordinator",
-          email: "coordinator@test.com",
-          role: "coordinator",
-          campusId: testCampusId,
-          studentId: "TEST004",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testCoordinatorId,
+        name: "Test Coordinator",
+        email: "coordinator@test.com",
+        role: "coordinator",
+        campusId: testCampusId,
+        studentId: "TEST004",
+      }));
 
       await expect(
         approveMembership({
@@ -417,16 +429,14 @@ describe("Club Membership Rules", () => {
         .returning();
 
       // Mock the session
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testUserId,
-          name: "Test Student",
-          email: "test@student.com",
-          role: "student",
-          campusId: testCampusId,
-          studentId: "TEST001",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testUserId,
+        name: "Test Student",
+        email: "test@student.com",
+        role: "student",
+        campusId: testCampusId,
+        studentId: "TEST001",
+      }));
 
       const result = await requestJoin({
         clubId: testClubId,
@@ -452,16 +462,14 @@ describe("Club Membership Rules", () => {
       });
 
       // Mock the session
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testUserId,
-          name: "Test Student",
-          email: "test@student.com",
-          role: "student",
-          campusId: testCampusId,
-          studentId: "TEST001",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testUserId,
+        name: "Test Student",
+        email: "test@student.com",
+        role: "student",
+        campusId: testCampusId,
+        studentId: "TEST001",
+      }));
 
       await expect(
         requestJoin({
@@ -481,16 +489,14 @@ describe("Club Membership Rules", () => {
       });
 
       // Mock the session
-      vi.spyOn(auth.api, "getSession").mockResolvedValue({
-        user: {
-          id: testUserId,
-          name: "Test Student",
-          email: "test@student.com",
-          role: "student",
-          campusId: testCampusId,
-          studentId: "TEST001",
-        },
-      } as any);
+      vi.spyOn(auth.api, "getSession").mockResolvedValue(createMockSession({
+        id: testUserId,
+        name: "Test Student",
+        email: "test@student.com",
+        role: "student",
+        campusId: testCampusId,
+        studentId: "TEST001",
+      }));
 
       await expect(
         requestJoin({

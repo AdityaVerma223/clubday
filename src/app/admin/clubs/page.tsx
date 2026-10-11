@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,13 +81,8 @@ export default function AdminClubsPage() {
     coordinatorIds: [],
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      setLoading(true);
       const clubsData = await listClubs();
       setClubs(clubsData);
 
@@ -110,7 +105,11 @@ export default function AdminClubsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadData);
+  }, [loadData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,7 +253,7 @@ export default function AdminClubsPage() {
                   <Label htmlFor="campus">Campus</Label>
                   <Select
                     value={formData.campusId || undefined}
-                    onValueChange={(value) => setFormData({ ...formData, campusId: value })}
+                    onValueChange={(value) => setFormData({ ...formData, campusId: value ?? "" })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select campus" />

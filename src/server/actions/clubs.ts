@@ -6,6 +6,7 @@ import { clubs, clubStaff, clubMembers, campuses, user } from "@/db/schema";
 import { eq, and, count, desc } from "drizzle-orm";
 import { can } from "@/lib/policy";
 import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 // ---------- Zod schemas ----------
 
@@ -45,7 +46,7 @@ const membershipDecisionSchema = z.object({
 // ---------- Server actions ----------
 
 export async function createClub(input: z.infer<typeof createClubSchema>) {
-  const session = await auth.api.getSession({ headers: new Headers() });
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     throw new Error("Unauthorized");
   }
@@ -56,7 +57,7 @@ export async function createClub(input: z.infer<typeof createClubSchema>) {
     action: "club.create",
     userId: session.user.id,
     userRole: session.user.role,
-    userCampusId: session.user.campusId,
+    userCampusId: session.user.campusId ?? undefined,
   });
 
   if (!authorized) {
@@ -121,7 +122,7 @@ export async function createClub(input: z.infer<typeof createClubSchema>) {
 }
 
 export async function editClub(input: z.infer<typeof editClubSchema>) {
-  const session = await auth.api.getSession({ headers: new Headers() });
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     throw new Error("Unauthorized");
   }
@@ -133,7 +134,7 @@ export async function editClub(input: z.infer<typeof editClubSchema>) {
     resource: { type: "club", id: validated.id },
     userId: session.user.id,
     userRole: session.user.role,
-    userCampusId: session.user.campusId,
+    userCampusId: session.user.campusId ?? undefined,
   });
 
   if (!authorized) {
@@ -188,7 +189,7 @@ export async function editClub(input: z.infer<typeof editClubSchema>) {
 }
 
 export async function listClubs() {
-  const session = await auth.api.getSession({ headers: new Headers() });
+  const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
   const userRole = session?.user?.role;
   const userCampusId = session?.user?.campusId;
@@ -197,7 +198,12 @@ export async function listClubs() {
   const whereClause =
     userRole === "admin"
       ? undefined
-      : eq(clubs.status, "approved");
+      : typeof userCampusId === "string"
+        ? and(
+            eq(clubs.status, "approved"),
+            eq(clubs.campusId, userCampusId),
+          )
+        : eq(clubs.status, "approved");
 
   const clubsList = await db.query.clubs.findMany({
     where: whereClause,
@@ -260,7 +266,7 @@ export async function listClubs() {
 }
 
 export async function requestJoin(input: z.infer<typeof requestJoinSchema>) {
-  const session = await auth.api.getSession({ headers: new Headers() });
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     throw new Error("Unauthorized");
   }
@@ -271,7 +277,7 @@ export async function requestJoin(input: z.infer<typeof requestJoinSchema>) {
     action: "membership.request",
     userId: session.user.id,
     userRole: session.user.role,
-    userCampusId: session.user.campusId,
+    userCampusId: session.user.campusId ?? undefined,
   });
 
   if (!authorized) {
@@ -371,7 +377,7 @@ export async function requestJoin(input: z.infer<typeof requestJoinSchema>) {
 export async function approveMembership(
   input: z.infer<typeof membershipDecisionSchema>,
 ) {
-  const session = await auth.api.getSession({ headers: new Headers() });
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     throw new Error("Unauthorized");
   }
@@ -383,7 +389,7 @@ export async function approveMembership(
     resource: { type: "membership", id: validated.membershipId },
     userId: session.user.id,
     userRole: session.user.role,
-    userCampusId: session.user.campusId,
+    userCampusId: session.user.campusId ?? undefined,
   });
 
   if (!authorized) {
@@ -470,7 +476,7 @@ export async function rejectMembership(
 }
 
 export async function listMembers(clubId: string) {
-  const session = await auth.api.getSession({ headers: new Headers() });
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     throw new Error("Unauthorized");
   }
@@ -507,7 +513,7 @@ export async function listMembers(clubId: string) {
 }
 
 export async function listMyMemberships() {
-  const session = await auth.api.getSession({ headers: new Headers() });
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     throw new Error("Unauthorized");
   }
@@ -528,7 +534,7 @@ export async function listMyMemberships() {
 }
 
 export async function getClubById(clubId: string) {
-  const session = await auth.api.getSession({ headers: new Headers() });
+  const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
   const userRole = session?.user?.role;
 
@@ -560,7 +566,7 @@ export async function getClubById(clubId: string) {
     resource: { type: "club", id: clubId },
     userId: userId || "",
     userRole: userRole || "student",
-    userCampusId: session?.user?.campusId,
+    userCampusId: session?.user?.campusId ?? undefined,
   });
 
   if (!authorized) {

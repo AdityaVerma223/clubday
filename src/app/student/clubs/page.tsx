@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,13 +48,8 @@ export default function StudentClubsPage() {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      setLoading(true);
       const [clubsData, membershipsData] = await Promise.all([
         listClubs(),
         listMyMemberships(),
@@ -66,7 +61,11 @@ export default function StudentClubsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadData);
+  }, [loadData]);
 
   const handleRequestJoin = async (clubId: string, kind: "primary" | "secondary") => {
     try {

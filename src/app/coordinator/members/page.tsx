@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,19 +36,8 @@ export default function CoordinatorMembersPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadClubs();
-  }, []);
-
-  useEffect(() => {
-    if (selectedClubId) {
-      loadMembers(selectedClubId);
-    }
-  }, [selectedClubId]);
-
-  const loadClubs = async () => {
+  const loadClubs = useCallback(async () => {
     try {
-      setLoading(true);
       const clubsData = await listClubs();
       // Filter to show only clubs where user is a coordinator
       // For now, show all approved clubs (this will be filtered on the server)
@@ -61,16 +50,26 @@ export default function CoordinatorMembersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadMembers = async (clubId: string) => {
+  const loadMembers = useCallback(async (clubId: string) => {
     try {
       const membersData = await listMembers(clubId);
       setMembers(membersData);
     } catch (error) {
       console.error("Failed to load members:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadClubs);
+  }, [loadClubs]);
+
+  useEffect(() => {
+    if (selectedClubId) {
+      void Promise.resolve().then(() => loadMembers(selectedClubId));
+    }
+  }, [selectedClubId, loadMembers]);
 
   const handleApprove = async (membershipId: string) => {
     try {
