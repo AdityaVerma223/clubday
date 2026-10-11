@@ -3,7 +3,7 @@
  */
 
 import { db } from "@/db";
-import { clubs, clubStaff, clubMembers } from "@/db/schema";
+import { activities, attendance, clubs, clubStaff, clubMembers, notifications, submissions } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 type CanInput = {
@@ -35,9 +35,80 @@ export async function can(input: CanInput): Promise<boolean> {
       return await canClubAction(userId, userRole, userCampusId, action, input.resource);
     case "membership":
       return await canMembershipAction(userId, userRole, action, input.resource);
+    case "campus":
+      return action === "calendar" && userRole === "campus_manager" && input.resource?.id === userCampusId;
+    case "activity":
+      return await canActivityAction(userId, userRole, action, input.resource);
+    case "attendance":
+      return await canAttendanceAction(userId, userRole, action, input.resource);
+    case "submission":
+      return await canSubmissionAction(userId, userRole, action, input.resource);
+    case "notification":
+      if (action === "read" && input.resource?.id) {
+        const notification = await db.query.notifications.findFirst({ where: eq(notifications.id, input.resource.id) });
+        return notification?.userId === userId;
+      }
+      return false;
     default:
       return false;
   }
+}
+
+async function isClubStaff(userId: string, clubId: string, role: "advisor" | "coordinator") {
+  return Boolean(await db.query.clubStaff.findFirst({
+    where: and(eq(clubStaff.clubId, clubId), eq(clubStaff.userId, userId), eq(clubStaff.role, role)),
+  }));
+}
+
+async function canActivityAction(userId: string, userRole: string, action: string, resource?: { type: string; id?: string }) {
+  if (action === "plan" && resource?.id && userRole === "coordinator") {
+    return isClubStaff(userId, resource.id, "coordinator");
+  }
+  if (!resource?.id) return false;
+  const activity = await db.query.activities.findFirst({ where: eq(activities.id, resource.id) });
+  if (!activity) return false;
+  if (action === "approve" && userRole === "advisor") return isClubStaff(userId, activity.clubId, "advisor");
+  if (["manage", "announce", "checkin_open", "checkin_close", "submissions_open"].includes(action) && userRole === "coordinator") {
+    return isClubStaff(userId, activity.clubId, "coordinator");
+  }
+  return false;
+}
+
+async function canAttendanceAction(userId: string, userRole: string, action: string, resource?: { type: string; id?: string }) {
+  if (!resource?.id) return false;
+  const activity = await db.query.activities.findFirst({ where: eq(activities.id, resource.id) });
+  if (!activity) return false;
+  if (action === "checkin" && userRole === "student") {
+    const [member, existing] = await Promise.all([
+      db.query.clubMembers.findFirst({ where: and(eq(clubMembers.clubId, activity.clubId), eq(clubMembers.userId, userId), eq(clubMembers.status, "approved")) }),
+      db.query.attendance.findFirst({ where: and(eq(attendance.activityId, activity.id), eq(attendance.userId, userId)) }),
+    ]);
+    return Boolean(member && !existing && activity.status === "check_in_open");
+  }
+  if (["manual", "correct"].includes(action) && userRole === "coordinator") {
+    return isClubStaff(userId, activity.clubId, "coordinator");
+  }
+  return false;
+}
+
+async function canSubmissionAction(userId: string, userRole: string, action: string, resource?: { type: string; id?: string }) {
+  if (!resource?.id) return false;
+  if (action === "submit" && userRole === "student") {
+    const activity = await db.query.activities.findFirst({ where: eq(activities.id, resource.id) });
+    if (!activity || !["submissions_open", "evaluating"].includes(activity.status)) return false;
+    const [member, checkin] = await Promise.all([
+      db.query.clubMembers.findFirst({ where: and(eq(clubMembers.clubId, activity.clubId), eq(clubMembers.userId, userId), eq(clubMembers.status, "approved")) }),
+      db.query.attendance.findFirst({ where: and(eq(attendance.activityId, activity.id), eq(attendance.userId, userId), eq(attendance.status, "present")) }),
+    ]);
+    return Boolean(member && checkin);
+  }
+  if (action === "evaluate" && (userRole === "advisor" || userRole === "coordinator")) {
+    const submission = await db.query.submissions.findFirst({ where: eq(submissions.id, resource.id) });
+    if (!submission) return false;
+    const activity = await db.query.activities.findFirst({ where: eq(activities.id, submission.activityId) });
+    return activity ? isClubStaff(userId, activity.clubId, userRole) : false;
+  }
+  return false;
 }
 
 async function canClubAction(

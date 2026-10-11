@@ -18,15 +18,19 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
 
-    const result = await authClient.signIn.email({ email, password });
-    setSubmitting(false);
-    if (result.error) {
-      setError(result.error.message ?? "Sign in failed. Check your email and password.");
-      return;
+    try {
+      const result = await authClient.signIn.email({ email, password });
+      if (result.error) {
+        setError(result.error.message ?? "Sign in failed. Check your email and password.");
+        return;
+      }
+      router.push("/student/clubs");
+      router.refresh();
+    } catch {
+      setError("Could not reach ClubDay. Check your connection and try again.");
+    } finally {
+      setSubmitting(false);
     }
-
-    router.push("/student/clubs");
-    router.refresh();
   }
 
   return (

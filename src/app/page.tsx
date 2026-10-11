@@ -8,6 +8,8 @@ export default function Home() {
       <h1 className="text-4xl font-semibold tracking-tight">ClubDay</h1>
       <p className="text-muted-foreground max-w-lg">Discover campus clubs, manage membership, and bring your club day together.</p>
       <Link className={buttonVariants()} href="/login">Sign in</Link>
+      <Link className="text-sm text-muted-foreground underline underline-offset-4" href="/calendar">View the activity calendar</Link>
+      <Link className="text-sm text-muted-foreground underline underline-offset-4" href="/submissions">Submissions and scores</Link>
     </main>
   );
 }
