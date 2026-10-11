@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { createClub, editClub, listClubs } from "@/server/actions/clubs";
+import { createClub, editClub, listClubs, listClubFormOptions } from "@/server/actions/clubs";
 import { Plus, Edit, Check, X } from "lucide-react";
 
 type Club = {
@@ -52,6 +52,8 @@ type User = {
   id: string;
   name: string;
   email: string;
+  role: string;
+  campusId: string | null;
 };
 
 export default function AdminClubsPage() {
@@ -83,23 +85,10 @@ export default function AdminClubsPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const clubsData = await listClubs();
+      const [clubsData, options] = await Promise.all([listClubs(), listClubFormOptions()]);
       setClubs(clubsData);
-
-      // Mock campuses and users for now - in real app, these would come from server actions
-      setCampuses([
-        { id: "1", code: "HI-TECH", name: "HI-TECH Campus" },
-        { id: "2", code: "RATNAM", name: "Ratnam Campus" },
-        { id: "3", code: "RGIB", name: "RGIB Campus" },
-        { id: "4", code: "JUJ", name: "JUJ Campus" },
-      ]);
-
-      setUsers([
-        { id: "u1", name: "Dr. Smith", email: "smith@msot.edu" },
-        { id: "u2", name: "Dr. Johnson", email: "johnson@msot.edu" },
-        { id: "u3", name: "Alice Student", email: "alice@msot.edu" },
-        { id: "u4", name: "Bob Student", email: "bob@msot.edu" },
-      ]);
+      setCampuses(options.campuses);
+      setUsers(options.users);
     } catch (error) {
       console.error("Failed to load clubs:", error);
     } finally {
@@ -253,7 +242,7 @@ export default function AdminClubsPage() {
                   <Label htmlFor="campus">Campus</Label>
                   <Select
                     value={formData.campusId || undefined}
-                    onValueChange={(value) => setFormData({ ...formData, campusId: value ?? "" })}
+                    onValueChange={(value) => setFormData({ ...formData, campusId: value ?? "", advisorIds: [], coordinatorIds: [] })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select campus" />
@@ -328,7 +317,7 @@ export default function AdminClubsPage() {
               <div className="space-y-2">
                 <Label>Faculty Advisors</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {users.map((user) => (
+                  {users.filter((user) => user.role === "advisor" && user.campusId === formData.campusId).map((user) => (
                     <Button
                       key={user.id}
                       type="button"
@@ -349,7 +338,7 @@ export default function AdminClubsPage() {
               <div className="space-y-2">
                 <Label>Student Coordinators</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {users.map((user) => (
+                  {users.filter((user) => user.role === "coordinator" && user.campusId === formData.campusId).map((user) => (
                     <Button
                       key={user.id}
                       type="button"

@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { db } from "@/db";
 import { clubs, clubStaff, clubMembers, campuses, user } from "@/db/schema";
-import { eq, and, count, desc } from "drizzle-orm";
+import { eq, and, count, desc, inArray } from "drizzle-orm";
 import { can } from "@/lib/policy";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -73,14 +73,7 @@ export async function createClub(input: z.infer<typeof createClubSchema>) {
   }
 
   // Verify all advisor and coordinator users exist
-  const allStaffIds = [...validated.advisorIds, ...validated.coordinatorIds];
-  const staffUsers = await db.query.user.findMany({
-    where: eq(user.id, allStaffIds[0]),
-  });
-
-  if (staffUsers.length !== allStaffIds.length) {
-    throw new Error("One or more staff users not found");
-  }
+  await getAssignedStaff(validated.campusId, validated.advisorIds, validated.coordinatorIds);
 
   // Create club and staff in a transaction
   const [club] = await db.transaction(async (tx) => {
@@ -149,6 +142,10 @@ export async function editClub(input: z.infer<typeof editClubSchema>) {
     throw new Error("Club not found");
   }
 
+  const campus = await db.query.campuses.findFirst({ where: eq(campuses.id, validated.campusId) });
+  if (!campus) throw new Error("Campus not found");
+  await getAssignedStaff(validated.campusId, validated.advisorIds, validated.coordinatorIds);
+
   // Update club and staff in a transaction
   await db.transaction(async (tx) => {
     await tx
@@ -186,6 +183,43 @@ export async function editClub(input: z.infer<typeof editClubSchema>) {
   });
 
   return { success: true };
+}
+
+async function getAssignedStaff(campusId: string, advisorIds: string[], coordinatorIds: string[]) {
+  const ids = [...advisorIds, ...coordinatorIds];
+  if (new Set(ids).size !== ids.length) throw new Error("A staff member can only be assigned once per club");
+  const staffUsers = ids.length
+    ? await db.query.user.findMany({ where: inArray(user.id, ids), columns: { id: true, role: true, campusId: true } })
+    : [];
+  if (staffUsers.length !== ids.length) throw new Error("One or more staff users not found");
+  const userById = new Map(staffUsers.map((staffUser) => [staffUser.id, staffUser]));
+  for (const id of advisorIds) {
+    const staffUser = userById.get(id);
+    if (staffUser?.role !== "advisor" || staffUser.campusId !== campusId) {
+      throw new Error("Choose faculty advisors assigned to this campus");
+    }
+  }
+  for (const id of coordinatorIds) {
+    const staffUser = userById.get(id);
+    if (staffUser?.role !== "coordinator" || staffUser.campusId !== campusId) {
+      throw new Error("Choose student coordinators assigned to this campus");
+    }
+  }
+  return staffUsers;
+}
+
+export async function listClubFormOptions() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session?.user?.role !== "admin") throw new Error("Forbidden: Only admins can manage clubs");
+  const [campusRows, staffRows] = await Promise.all([
+    db.query.campuses.findMany({ columns: { id: true, code: true, name: true }, orderBy: (campus, { asc }) => [asc(campus.name)] }),
+    db.query.user.findMany({
+      where: inArray(user.role, ["advisor", "coordinator"]),
+      columns: { id: true, name: true, email: true, role: true, campusId: true },
+      orderBy: (account, { asc }) => [asc(account.name)],
+    }),
+  ]);
+  return { campuses: campusRows, users: staffRows };
 }
 
 export async function listClubs() {
