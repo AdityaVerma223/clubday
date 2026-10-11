@@ -5,6 +5,11 @@ import * as schema from "@/db/schema";
 import { env } from "@/env";
 
 export const auth = betterAuth({
+    trustedOrigins: [
+    env.APP_URL,
+    "https://clubday-670c5jvrg-anarchy9.vercel.app",
+    "https://clubday-git-feat-day-3-clubs-anarchy9.vercel.app",
+  ],
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
