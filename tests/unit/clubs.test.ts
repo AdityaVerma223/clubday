@@ -5,6 +5,10 @@ import { requestJoin, approveMembership } from "@/server/actions/clubs";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
+vi.mock("next/headers", () => ({
+  headers: vi.fn(async () => new Headers()),
+}));
+
 type MockSessionUser = Pick<
   NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>["user"],
   "id" | "name" | "email" | "role" | "campusId" | "studentId"
