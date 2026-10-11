@@ -11,6 +11,7 @@
 // - Capacity of a club is NOT a constraint: check it inside a transaction in the join/approve code.
 
 import { sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
   boolean,
   check,
@@ -571,3 +572,39 @@ export const auditLog = pgTable(
     index("audit_log_created_idx").on(t.createdAt),
   ],
 );
+
+// ---------- Drizzle query relations used by the clubs UI/actions ----------
+export const campusesRelations = relations(campuses, ({ many }) => ({
+  clubs: many(clubs),
+}));
+
+export const clubsRelations = relations(clubs, ({ one, many }) => ({
+  campus: one(campuses, {
+    fields: [clubs.campusId],
+    references: [campuses.id],
+  }),
+  staff: many(clubStaff),
+  members: many(clubMembers),
+}));
+
+export const clubStaffRelations = relations(clubStaff, ({ one }) => ({
+  club: one(clubs, {
+    fields: [clubStaff.clubId],
+    references: [clubs.id],
+  }),
+  user: one(user, {
+    fields: [clubStaff.userId],
+    references: [user.id],
+  }),
+}));
+
+export const clubMembersRelations = relations(clubMembers, ({ one }) => ({
+  club: one(clubs, {
+    fields: [clubMembers.clubId],
+    references: [clubs.id],
+  }),
+  user: one(user, {
+    fields: [clubMembers.userId],
+    references: [user.id],
+  }),
+}));
