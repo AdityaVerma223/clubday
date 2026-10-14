@@ -12,6 +12,7 @@ export const auth = betterAuth({
   "https://clubday-j99nq74ua-anarchy9.vercel.app",
   "https://clubday-znviteunc-anarchy9.vercel.app",
   "https://clubday-ji2mz3h0d-anarchy9.vercel.app",
+  "https://clubday-i4x7g9zi7-anarchy9.vercel.app",
 ],
   database: drizzleAdapter(db, {
     provider: "pg",
