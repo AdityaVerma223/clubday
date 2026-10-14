@@ -24,8 +24,24 @@ export default function LoginPage() {
         setError(result.error.message ?? "Sign in failed. Check your email and password.");
         return;
       }
-      router.push("/student/clubs");
-      router.refresh();
+      const session = await authClient.getSession();
+
+if (session.error || !session.data?.user) {
+  setError("Signed in, but could not retrieve your session. Please try again.");
+  return;
+}
+
+const role = (session.data.user as { role?: string }).role;
+
+const destination =
+  role === "admin"
+    ? "/admin/clubs"
+    : role === "coordinator"
+      ? "/coordinator/members"
+      : "/student/clubs";
+
+router.replace(destination);
+router.refresh();
     } catch {
       setError("Could not reach ClubDay. Check your connection and try again.");
     } finally {
