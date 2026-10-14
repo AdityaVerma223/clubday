@@ -45,3 +45,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Temporary local account recovery files
+/reset-admin-password.ts
+/check-admin.ts
+/check-admin-credential.ts
+/.admin-recovery-password

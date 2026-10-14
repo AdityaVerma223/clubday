@@ -281,12 +281,19 @@ async function setActivityStatus(activityId: string, next: "announced" | "check_
   await canManageClub(activity.clubId, "coordinator");
   const session = await currentSession();
   await assertPolicy("activity.manage", "activity", activityId, session);
-  const allowed: Record<typeof next, string> = {
-    announced: "approved",
-    check_in_open: "announced",
-    check_in_closed: "check_in_open",
+    const allowed: Record<typeof next, string[]> = {
+    announced: ["approved"],
+    check_in_open: ["announced", "check_in_closed"],
+    check_in_closed: ["check_in_open"],
   };
-  if (activity.status !== allowed[next]) throw new Error(`This activity must be ${allowed[next].replaceAll("_", " ")} first`);
+
+  if (!allowed[next].includes(activity.status)) {
+    throw new Error(
+      `This activity must be ${allowed[next]
+        .map((status) => status.replaceAll("_", " "))
+        .join(" or ")} first`,
+    );
+  }
   const now = new Date();
   const values = next === "check_in_open"
     ? { status: next, checkInOpensAt: now, checkInClosesAt: new Date(now.getTime() + 2 * 60 * 60_000) }
