@@ -9,6 +9,8 @@ export const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   JOBS_TOKEN: z.string().min(1),
+  ALLOW_DEMO_SEED: z.enum(["YES"]).optional(),
+  DEMO_SEED_PASSWORD: z.string().min(12).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
