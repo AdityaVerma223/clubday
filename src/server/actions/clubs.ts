@@ -325,6 +325,16 @@ export async function requestJoin(input: z.infer<typeof requestJoinSchema>) {
   if (club.status !== "approved") {
     throw new Error("Club is not approved");
   }
+  console.info("[clubday:campus-check]", {
+    userId: session.user.id,
+    sessionCampusPresent: Boolean(session.user.campusId),
+    sessionCampusId: session.user.campusId ?? null,
+    clubId: club.id,
+    clubCampusId: club.campusId,
+    campusMatches: Boolean(session.user.campusId) &&
+      club.campusId === session.user.campusId,
+  });
+
   if (!session.user.campusId || club.campusId !== session.user.campusId) {
     throw new Error("You can only request membership at your own campus");
   }
