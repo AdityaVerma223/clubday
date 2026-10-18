@@ -7,6 +7,7 @@ import { env } from "@/env";
 export const auth = betterAuth({
       trustedOrigins: [
   env.APP_URL,
+  "https://clubday-nine.vercel.app",
   "https://clubday-*-anarchy9.vercel.app",
   "https://clubday-670c5jvrg-anarchy9.vercel.app",
   "https://clubday-git-feat-day-3-clubs-anarchy9.vercel.app",
